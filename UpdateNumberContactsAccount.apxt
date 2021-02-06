@@ -1,0 +1,32 @@
+trigger UpdateNumberContactsAccount on Contact (after insert,after update, after delete) {
+    
+    //added/modified/deleted contacts List
+	List<Contact> contactsList = Trigger.isDelete? Trigger.old:Trigger.new;
+    
+    //AccountIds List in ContactList 
+    Set<Id> accountsIds  = new Set<Id>();
+    for (Contact contact: contactsList)  {
+        if (contact.AccountId != null) {
+        	accountsIds.add(contact.AccountId);
+        }
+    }
+    	//If after update the account was modified
+    if(Trigger.isUpdate){
+        for (Contact contact: Trigger.old)  {
+        	if (contact.AccountId != null) {
+        		accountsIds.add(contact.AccountId);
+        	}
+    	}
+    }
+    
+   //Accounts List (sobject) (of the added/modified/deleted contacts)
+   List<Account> accountsList = [Select Id, (Select Id from Contacts) from Account WHERE Id in: accountsIds ];
+
+   //update number of contacts for all accounts 
+   for (Account account: accountsList) {
+       List<Contact> contactsAccount = account.Contacts;
+       account.nombre_de_contacts__c = contactsAccount.size();
+   }
+    
+   update accountsList;
+}
